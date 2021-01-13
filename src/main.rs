@@ -1,8 +1,11 @@
+use std::cmp::min;
+
+// display dimensions
+const SCREEN_HEIGHT: usize = 40;
+const SCREEN_WIDTH: usize = 40;
+
 const THETA_SPACING: f32 = 0.07;
 const PHI_SPACING: f32 = 0.02;
-
-const SCREEN_HEIGHT: usize = 30;
-const SCREEN_WIDTH: usize = 30;
 
 const R1: f32 = 1.0;
 const PI: f32 = std::f32::consts::PI;
@@ -23,8 +26,8 @@ fn render_frame(a: f32, b: f32) {
     let cos_b = b.cos();
     let sin_b = b.sin();
 
-    let mut output = vec![vec![b' '; SCREEN_HEIGHT]; SCREEN_WIDTH];
-    let mut zbuffer = vec![vec![0.0f32; SCREEN_HEIGHT]; SCREEN_WIDTH];
+    let mut output = [[b' '; SCREEN_HEIGHT]; SCREEN_WIDTH];
+    let mut zbuffer = [[0.0f32; SCREEN_HEIGHT]; SCREEN_WIDTH];
 
     // theta goes around the cross-sectional circle of a torus
     let mut theta = 0.0;
@@ -54,8 +57,14 @@ fn render_frame(a: f32, b: f32) {
 
             // x and y projection.  note that y is negated here, because y
             // goes up in 3D space but down on 2D displays.
-            let xp = (SCREEN_WIDTH as f32 / 2.0 + K1 * ooz * x) as usize;
-            let yp = (SCREEN_HEIGHT as f32 / 2.0 - K1 * ooz * y) as usize;
+            let xp = min(
+                (SCREEN_WIDTH as f32 / 2.0 + K1 * ooz * x) as usize,
+                SCREEN_WIDTH - 1,
+            );
+            let yp = min(
+                (SCREEN_HEIGHT as f32 / 2.0 - K1 * ooz * y) as usize,
+                SCREEN_HEIGHT - 1,
+            );
 
             // calculate luminance.  ugly, but correct.
             let l = cosphi * costheta * sin_b - cos_a * costheta * sinphi - sin_a * sintheta
@@ -83,19 +92,22 @@ fn render_frame(a: f32, b: f32) {
     // bring cursor to "home" location, in just about any currently-used
     // terminal emulation mode
     print!("\x1b[H");
-    for j in 0..SCREEN_HEIGHT {
-        for i in 0..SCREEN_WIDTH {
-            print!("{}", output[i][j] as char);
+    for output in &output {
+        for c in output {
+            print!("{}", *c as char)
         }
         println!();
     }
 }
 
 fn main() {
-    const STEP: f32 = 0.002;
-    let mut angle = 0.0;
+    const STEP_X: f32 = 0.002;
+    const STEP_Y: f32 = 0.003;
+    let mut angle_x = 0.0;
+    let mut angle_y = 0.0;
     loop {
-        render_frame(angle, angle);
-        angle += STEP;
+        render_frame(angle_x, angle_y);
+        angle_x += STEP_X;
+        angle_y += STEP_Y;
     }
 }
